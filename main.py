@@ -163,8 +163,13 @@ def help_handler(message):
     reply_text = "/start - Starts the bot\n/s/<from>/<to> - Substitutes any <from> string to <to> in a message you're replying to" + \
         "\n/roll *n*d*m* - Rolls n amount of m-sided dice. N can be omitted to roll just 1 die" + \
         "\n/add - Adds your @tag to the Everyone command list\n/everyone or /e1 - Tags everyone added to the list with /add" + \
-        "\n/remove - Removes your @tag from the Everyone command list"
+        "\n/remove - Removes your @tag from the Everyone command list\ngithub - Links the github for this project"
     bot.reply_to(message, reply_text, parse_mode="Markdown")
+
+@bot.message_handler(commands=['github'])
+def github_handler(message):
+    reply_text = "https://github.com/agar64/Imouto_bot"
+    bot.reply_to(message, reply_text)
 
 while True:
     try:
