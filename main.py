@@ -158,12 +158,55 @@ def e1_handler(message):
     reply_text = everyone_func(message)
     bot.reply_to(message, reply_text)
 
+
+def shout_func(parsed):
+    reply_temp = ' '.join(f"{c.upper()}" for c in parsed) + "\n"
+    msg_size = len(parsed)
+    '''for char in parsed:
+        reply_text = reply_text + char.upper().join(" " for c in parsed) + "\n"
+        '''
+    reply_text = reply_temp
+    for char in range(msg_size):
+        if char != 0:
+            reply_text = reply_text + parsed[char].upper() #+ ''.join(" " for c in parsed) + "\n"
+            for c in range(len(parsed)):
+                if c == char:
+                    reply_text = reply_text + parsed[char].upper()
+                elif c == 0:
+                    reply_text = reply_text + " "
+                else:
+                    reply_text = reply_text + "  "
+            reply_text = reply_text + "\n"
+    return f"<pre><b>{reply_text}</b></pre>"
+
+@bot.message_handler(commands=['shout'])
+def shout_handler(message):
+    parsed = message.text.replace("/shout ", "")
+    parsed = parsed.replace("/shout", "")
+    msg_size = len(parsed)
+
+    if msg_size > 25:
+        reply_text = "Meep. That's too much for me"
+    elif msg_size <= 0:
+        if message.reply_to_message and message.reply_to_message.text:
+            parsed = message.reply_to_message.text
+            reply_text = f"{shout_func(parsed)}"
+            print("<= 0")
+        else:
+            reply_text = "Meep. You need to type something or reply to someone"
+    else:
+        reply_text = f"{shout_func(parsed)}"
+        print(f"msg_size = {msg_size}; msg = {parsed}")
+    bot.reply_to(message, f"{reply_text}", parse_mode="HTML")
+
+
 @bot.message_handler(commands=['help'])
 def help_handler(message):
     reply_text = "/start - Starts the bot\n/s/<from>/<to> - Substitutes any <from> string to <to> in a message you're replying to" + \
         "\n/roll *n*d*m* - Rolls n amount of m-sided dice. N can be omitted to roll just 1 die" + \
         "\n/add - Adds your @tag to the Everyone command list\n/everyone or /e1 - Tags everyone added to the list with /add" + \
-        "\n/remove - Removes your @tag from the Everyone command list\ngithub - Links the github for this project"
+        "\n/remove - Removes your @tag from the Everyone command list\ngithub - Links the github for this project" + \
+        "\n/shout - Echoes a typed or replied to message in a certain pattern"
     bot.reply_to(message, reply_text, parse_mode="Markdown")
 
 @bot.message_handler(commands=['github'])
