@@ -4,6 +4,8 @@ import time
 import datetime
 import re
 import sys
+import requests
+from telebot.apihelper import ApiTelegramException
 
 import numpy as np
 
@@ -15,14 +17,34 @@ BOT_TOKEN = os.environ.get('BOT_TOKEN')
 
 bot = telebot.TeleBot(BOT_TOKEN)
 
+# === Fix Disconnections BS ===
+def safe_send_message(chat_id, text, retries=3, delay=2, parse_mode=None):
+    for attempt in range(retries):
+        try:
+            return bot.send_message(chat_id, text, parse_mode=parse_mode)
+        except (requests.exceptions.RequestException, ApiTelegramException) as e:
+            print(f"[safe_send_message] Attempt {attempt+1} failed: {e}")
+            time.sleep(delay)
+    print("[safe_send_message] All retries failed.")
+    return None
+
+def safe_reply(chat_id, text, retries=3, delay=2, parse_mode=None):
+    for attempt in range(retries):
+        try:
+            return bot.reply_to(chat_id, text, parse_mode=parse_mode)
+        except (requests.exceptions.RequestException, ApiTelegramException) as e:
+            print(f"[safe_send_message] Attempt {attempt+1} failed: {e}")
+            time.sleep(delay)
+    print("[safe_send_message] All retries failed.")
+    return None
 
 @bot.message_handler(commands=['start', 'hello'])
 def send_welcome(message):
     if(message.chat.type == "private"):
-        bot.reply_to(message, f"Hello, {message.from_user.first_name} {message.from_user.last_name}!")
+        safe_reply(message, f"Hello, {message.from_user.first_name} {message.from_user.last_name}!")
         print("I think this is a private chat!")
     else:
-        bot.reply_to(message, f"Hello, {message.chat.title}!")
+        safe_reply(message, f"Hello, {message.chat.title}!")
         print("I think this is a group chat!")
     print(f"I detect this as a {message.chat.type} chat")
 
@@ -58,17 +80,59 @@ def apply_sub(message, substitution):
     return result
 
 
+def slap_msg(adversary, sender):
+    msg_repo = [f"{adversary} got his butt slapped by {sender}!", f"{adversary} got sent to the Shadow Realm!",
+                f"{adversary} is sleeping with the fishies!", f"{adversary} clawed their throat out!",
+                f"{adversary} got cursed by Oyashiro-sama!", f"{adversary} got demoned-away!",
+                f"{adversary} got decapitated by {sender}!", f"{adversary}'s ancestors aren't smiling at him!",
+                f"{adversary} drowned!", f"{adversary} fell into lava!", f"{adversary} got fired!", f"{adversary} died!",
+                f"{adversary} got mauled by a bear!", f"{adversary} died of ligma!", f"{adversary} died of sugma!",
+                f"{adversary}'s mom was ground-pounded by {sender}!", f"{adversary} fell out of the world!",
+                f"{adversary} got his neck snapped by a Bracken!", f"{adversary} was blown into bits by {sender}!",
+                f"{adversary} got shot by {sender}!", f"{adversary} got eaten by {sender}!",
+                f"Poor, poor {adversary}! Nipah~~", f"{adversary} met the ground at 200km/h!",
+                f"{adversary} got stabbed by {sender} in a dark alley!", f"{adversary} met Jesus!", f"{adversary} is alive and well",
+                f"{adversary} was lit on fire by {sender}!", f"No one watched {adversary}'s stream!", f"{adversary} got demonetized!",
+                f"{adversary}'s existence was replaced by {sender}!", f"Who's {adversary}?", f"{adversary} got arrested!",
+                f"{adversary} received the Sonichu Medallion!", f"{adversary} became an AI-generated image!",
+                f"{adversary} got rejected from art school!", f"{adversary} was the Impostor!",
+                f"{adversary} is being gaslit by {sender}!", f"{adversary} got shat on by a bird!",
+                f"{adversary} stepped on a landmine!", f"{adversary} experienced domestic violence in the hands of {sender}!",
+                f"{adversary} was charred to ashes!", f"{adversary} reincarnated into a barnacle!",
+                f"{adversary}'s pizza arrived cold!", f"{adversary} ate small bombs!",
+                f"{adversary} thought he could outrun {sender}!", f"{adversary} got ran over by an ambulance!",
+                f"{adversary} forgot to breathe!", f"{adversary} went cave-diving!", f"{adversary} got stuck in Nutty Putty Cave!",
+                f"{adversary} got killed by a butterfly!", f"{adversary} ate {sender}'s fists!", f"{adversary} fell into a sinkhole!",
+                f"{adversary} choked on saliva!", f"Everyone forgot {adversary}'s birthday!", f"{adversary} was set up by {sender}!"]
+    reply_text = msg_repo[random.randint(0, len(msg_repo)-1)]
+    #print(len(msg_repo)-1)
+    return reply_text
+
+# Note: Not in use
+def slap_msg_mistake(sender):
+    msg_repo = [f"{sender} is too stupid to use a command correctly!", f"{sender} can't read!",
+                f"{sender} should go back to kindergarten!", f"{sender} can't type!"]
+    reply_text = msg_repo[random.randint(0, len(msg_repo) - 1)]
+    return reply_text
+
 @bot.message_handler(func=lambda message: message.text.startswith('/s/'))
 def sub_handler(message):
     if message.reply_to_message and message.reply_to_message.text:
         try:
             answ = apply_sub(message.reply_to_message.text, message.text)
-            bot.reply_to(message.reply_to_message, f"<b>Did you mean:</b>\n\"{answ}\"", parse_mode="HTML")
+            safe_reply(message.reply_to_message, f"<b>Did you mean:</b>\n\"{answ}\"", parse_mode="HTML")
         except Exception as e:
-            bot.reply_to(message, "Something went wrong while replying.")
+            safe_reply(message, "Something went wrong while replying.")
+            print(f"Reply error: {e}")
+    elif message.reply_to_message and message.reply_to_message.caption:
+        try:
+            answ = apply_sub(message.reply_to_message.caption, message.text)
+            safe_reply(message.reply_to_message, f"<b>Did you mean:</b>\n\"{answ}\"", parse_mode="HTML")
+        except Exception as e:
+            safe_reply(message, "Something went wrong while replying.")
             print(f"Reply error: {e}")
     else:
-        bot.reply_to(message, "Você precisa estar respondendo a uma mensagem com texto!")
+        safe_reply(message, "You need to be replying to a text message!")
 
 
 # ==== Roll command ====
@@ -80,30 +144,34 @@ def roll_handler(message):
     match = re.fullmatch(r'(\d+)?d(\d+)', parsed) or re.fullmatch(r'd?(\d+)', parsed)
 
     if not match:
-        bot.reply_to(message, "Mensagem mal formatada!")
+        safe_reply(message, "Badly-Formated Message!")
         return
 
     if len(match.groups()) == 2:
         count = int(match.group(1)) if match.group(1) else 1
         dice_range = int(match.group(2))
-        # bot.reply_to(message, f"count = {count}, range = {dice_range}")
+        # safe_reply(message, f"count = {count}, range = {dice_range}")
     else:
         count = 1
+        if (match.group(0) == match.group(1)):
+            safe_reply(message, "You forgot the d!")
+            return
         dice_range = int(match.group(2))
-        # bot.reply_to(message, f"count = {count}, range = {dice_range}")
+        # safe_reply(message, f"count = {count}, range = {dice_range}")
 
     if dice_range < 2:
-        bot.reply_to(message, "The range of consent is 2.")
+        safe_reply(message, "The range of consent is 2.")
         return
 
     if count > 1000 or dice_range > 1000:
-        bot.reply_to(message, "The maximum range and count are 1000.")
+        safe_reply(message, "The maximum range and count are 1000.")
         return
 
     rolls = [str(random.randint(1, dice_range)) for _ in range(count)]
-    result_text = f"<b>{count}d{dice_range}</b>\n" + " ".join(rolls)
+    rolls_sum = sum([int(x) for x in rolls])
+    result_text = f"<b>{count}d{dice_range}</b>\n" + " ".join(rolls) + f"\n<b>SUM =</b> {rolls_sum}"
 
-    bot.reply_to(message, result_text, parse_mode="HTML")
+    safe_reply(message, result_text, parse_mode="HTML")
 
 # === @everyone ===
 
@@ -119,14 +187,14 @@ def everyone_func(message):
 def add_handler(message):
     username = message.from_user.username
     if not username:
-        bot.reply_to(message, "Meep, you need a public @username to be added")
+        safe_reply(message, "Meep, you need a public @username to be added")
         return
 
     added = add_user(message.chat.id, username)
     if added:
-        bot.reply_to(message, f"@{username} was added to the list! Nipah~~")
+        safe_reply(message, f"@{username} was added to the list! Nipah~~")
     else:
-        bot.reply_to(message, f"@{username} is already on the list or couldn't be added. Meep")
+        safe_reply(message, f"@{username} is already on the list or couldn't be added. Meep")
 
 
 @bot.message_handler(commands=['remove'])
@@ -135,9 +203,9 @@ def remove_handler(message):
     chat_id = message.chat.id
 
     if remove_user(chat_id, username):
-        bot.reply_to(message, f"Removed @{username} from the tag list")
+        safe_reply(message, f"Removed @{username} from the tag list")
     else:
-        bot.reply_to(message, f"@{username} was not in the tag list")
+        safe_reply(message, f"@{username} was not in the tag list")
 
 
 @bot.message_handler(commands=['listEveryone'])
@@ -145,18 +213,18 @@ def list_handler(message):
     chat_id = message.chat.id
     usernames = get_users(chat_id)
     reply_text = ' '.join(f"{u}" for u in usernames)
-    bot.reply_to(message, reply_text)
+    safe_reply(message, reply_text)
 
 @bot.message_handler(commands=['everyone', 'e1'])
 def everyone_handler(message):
     reply_text = everyone_func(message)
-    bot.reply_to(message, reply_text)
+    safe_reply(message, reply_text)
 
 @bot.message_handler(func=lambda message: message.text and re.search(r"(!)e1", message.text))
 def e1_handler(message):
     print("Hello!")
     reply_text = everyone_func(message)
-    bot.reply_to(message, reply_text)
+    safe_reply(message, reply_text)
 
 
 def shout_func(parsed):
@@ -197,7 +265,25 @@ def shout_handler(message):
     else:
         reply_text = f"{shout_func(parsed)}"
         print(f"msg_size = {msg_size}; msg = {parsed}")
-    bot.reply_to(message, f"{reply_text}", parse_mode="HTML")
+    safe_send_message(message.chat.id, f"{reply_text}", parse_mode="HTML")
+
+
+@bot.message_handler(commands=['slap'])
+def slap_handler(message):
+    parsed = message.text.replace("/slap ", "")
+    parsed = parsed.replace("/slap", "")
+    sender = message.from_user.first_name
+    if ((len(parsed) <=0) and (message.reply_to_message is not None) and (message.reply_to_message.from_user.first_name is not None)):
+        adversary = message.reply_to_message.from_user.first_name
+    elif(len(parsed) <=0):
+        adversary = sender
+        sender = "himself"
+    else:
+        adversary = parsed
+
+    reply_text = slap_msg(adversary, sender)
+
+    safe_send_message(message.chat.id, reply_text)
 
 
 @bot.message_handler(commands=['help'])
@@ -206,13 +292,13 @@ def help_handler(message):
         "\n/roll *n*d*m* - Rolls n amount of m-sided dice. N can be omitted to roll just 1 die" + \
         "\n/add - Adds your @tag to the Everyone command list\n/everyone or /e1 - Tags everyone added to the list with /add" + \
         "\n/remove - Removes your @tag from the Everyone command list\ngithub - Links the github for this project" + \
-        "\n/shout - Echoes a typed or replied to message in a certain pattern"
-    bot.reply_to(message, reply_text, parse_mode="Markdown")
+        "\n/shout - Echoes a typed or replied to message in a certain pattern\n/slap - Gives a kill message to whoever you're replying to or wrote after the command"
+    safe_reply(message, reply_text, parse_mode="Markdown")
 
 @bot.message_handler(commands=['github'])
 def github_handler(message):
     reply_text = "https://github.com/agar64/Imouto_bot"
-    bot.reply_to(message, reply_text)
+    safe_reply(message, reply_text)
 
 while True:
     try:
