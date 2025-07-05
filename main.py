@@ -18,20 +18,20 @@ BOT_TOKEN = os.environ.get('BOT_TOKEN')
 bot = telebot.TeleBot(BOT_TOKEN)
 
 # === Fix Disconnections BS ===
-def safe_send_message(chat_id, text, retries=3, delay=2, parse_mode=None):
+def safe_send_message(chat_id, text, retries=3, delay=2, parse_mode=None, disable_web_page_preview=False):
     for attempt in range(retries):
         try:
-            return bot.send_message(chat_id, text, parse_mode=parse_mode)
+            return bot.send_message(chat_id, text, parse_mode=parse_mode, disable_web_page_preview=disable_web_page_preview)
         except (requests.exceptions.RequestException, ApiTelegramException) as e:
             print(f"[safe_send_message] Attempt {attempt+1} failed: {e}")
             time.sleep(delay)
     print("[safe_send_message] All retries failed.")
     return None
 
-def safe_reply(chat_id, text, retries=3, delay=2, parse_mode=None):
+def safe_reply(chat_id, text, retries=3, delay=2, parse_mode=None, disable_web_page_preview=False):
     for attempt in range(retries):
         try:
-            return bot.reply_to(chat_id, text, parse_mode=parse_mode)
+            return bot.reply_to(chat_id, text, parse_mode=parse_mode, disable_web_page_preview=disable_web_page_preview)
         except (requests.exceptions.RequestException, ApiTelegramException) as e:
             print(f"[safe_send_message] Attempt {attempt+1} failed: {e}")
             time.sleep(delay)
@@ -83,20 +83,20 @@ def apply_sub(message, substitution):
 def slap_msg(adversary, sender):
     msg_repo = [f"{adversary} got his butt slapped by {sender}!", f"{adversary} got sent to the Shadow Realm!",
                 f"{adversary} is sleeping with the fishies!", f"{adversary} clawed their throat out!",
-                f"{adversary} got cursed by Oyashiro-sama!", f"{adversary} got demoned-away!",
-                f"{adversary} got decapitated by {sender}!", f"{adversary}'s ancestors aren't smiling at him!",
+                f"{adversary} got cursed by Oyashiro-sama!", f"{adversary} was demoned-away!",
+                f"{adversary} was decapitated by {sender}!", f"{adversary}'s ancestors aren't smiling at him!",
                 f"{adversary} drowned!", f"{adversary} fell into lava!", f"{adversary} got fired!", f"{adversary} died!",
                 f"{adversary} got mauled by a bear!", f"{adversary} died of ligma!", f"{adversary} died of sugma!",
                 f"{adversary}'s mom was ground-pounded by {sender}!", f"{adversary} fell out of the world!",
                 f"{adversary} got his neck snapped by a Bracken!", f"{adversary} was blown into bits by {sender}!",
-                f"{adversary} got shot by {sender}!", f"{adversary} got eaten by {sender}!",
+                f"{adversary} was shot by {sender}!", f"{adversary} got eaten by {sender}!",
                 f"Poor, poor {adversary}! Nipah~~", f"{adversary} met the ground at 200km/h!",
                 f"{adversary} got stabbed by {sender} in a dark alley!", f"{adversary} met Jesus!", f"{adversary} is alive and well",
                 f"{adversary} was lit on fire by {sender}!", f"No one watched {adversary}'s stream!", f"{adversary} got demonetized!",
                 f"{adversary}'s existence was replaced by {sender}!", f"Who's {adversary}?", f"{adversary} got arrested!",
                 f"{adversary} received the Sonichu Medallion!", f"{adversary} became an AI-generated image!",
                 f"{adversary} got rejected from art school!", f"{adversary} was the Impostor!",
-                f"{adversary} is being gaslit by {sender}!", f"{adversary} got shat on by a bird!",
+                f"{adversary} is being gaslit by {sender}!", f"{adversary} was shat on by a bird!",
                 f"{adversary} stepped on a landmine!", f"{adversary} experienced domestic violence in the hands of {sender}!",
                 f"{adversary} was charred to ashes!", f"{adversary} reincarnated into a barnacle!",
                 f"{adversary}'s pizza arrived cold!", f"{adversary} ate small bombs!",
@@ -288,12 +288,13 @@ def slap_handler(message):
 
 @bot.message_handler(commands=['help'])
 def help_handler(message):
-    reply_text = "/start - Starts the bot\n/s/<from>/<to> - Substitutes any <from> string to <to> in a message you're replying to" + \
+    reply_text = "/start - Starts the bot\n[/s/](https://youtu.be/cErgMJSgpv0)<from>/<to> - Substitutes any <from> string to <to> in a message you're replying to" + \
         "\n/roll *n*d*m* - Rolls n amount of m-sided dice. N can be omitted to roll just 1 die" + \
-        "\n/add - Adds your @tag to the Everyone command list\n/everyone or /e1 - Tags everyone added to the list with /add" + \
-        "\n/remove - Removes your @tag from the Everyone command list\ngithub - Links the github for this project" + \
-        "\n/shout - Echoes a typed or replied to message in a certain pattern\n/slap - Gives a kill message to whoever you're replying to or wrote after the command"
-    safe_reply(message, reply_text, parse_mode="Markdown")
+        "\n/add - Adds your [@tag](https://youtu.be/cErgMJSgpv0) to the Everyone command list\n/everyone or /e1 - Tags everyone added to the list with /add" + \
+        "\n/remove - Removes your [@tag](https://youtu.be/cErgMJSgpv0) from the Everyone command list\n/github - Links the github for this project" + \
+        "\n/shout - Echoes a typed or replied to message in a certain pattern\n/slap *n* or /slap *while replying to someone*" + \
+        " - Gives a kill message about *n* or whoever you're replying to (unless it's another bot since bots can't see eachother)"
+    safe_reply(message, reply_text, parse_mode="Markdown", disable_web_page_preview=True)
 
 @bot.message_handler(commands=['github'])
 def github_handler(message):
