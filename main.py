@@ -226,16 +226,15 @@ def e1_handler(message):
     reply_text = everyone_func(message)
     safe_reply(message, reply_text)
 
-@bot.message_handler(func=lambda message: message.text and message.text.endswith(("crazy", "crazy.", "crazy!", "crazy...", \
-                                                                                  "crazy?", "doido", "louco", "doido.", \
-                                                                                  "doido!", "louco.", "louco!")))
+@bot.message_handler(content_types=['text'])
 def crazy_handler(message):
     #print("Hello!")
     if message.text.endswith(("crazy", "crazy.", "crazy!", "crazy...", "crazy?")):
         reply_text = "frog"
+        safe_send_message(message, reply_text)
     elif message.text.endswith(("doido", "louco", "doido.", "doido!", "louco.", "louco!")):
         reply_text = "sapo"
-    safe_send_message(message, reply_text)
+        safe_send_message(message, reply_text)
 
 
 def shout_func(parsed):
