@@ -306,10 +306,10 @@ def crazy_handler(message):
     #print("Hello!")
     if (message.text.endswith(("crazy", "crazy.", "crazy!", "crazy...", "crazy?"))):
         reply_text = "frog"
-        safe_send_message(message, reply_text)
+        safe_send_message(message.chat.id, reply_text)
     elif (message.text.endswith(("doido", "louco", "doido.", "doido!", "louco.", "louco!"))):
         reply_text = "sapo"
-        safe_send_message(message, reply_text)
+        safe_send_message(message.chat.id, reply_text)
 
 while True:
     try:
